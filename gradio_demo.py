@@ -336,4 +336,4 @@ if __name__ == "__main__":
 
     gr.TabbedInterface([video_to_audio_tab, text_to_audio_tab, image_to_audio_tab],
                        ['Video-to-Audio', 'Text-to-Audio', 'Image-to-Audio (experimental)']).launch(
-                           server_port=args.port, allowed_paths=[output_dir])
+                           server_name='0.0.0.0', server_port=args.port, allowed_paths=[output_dir])
