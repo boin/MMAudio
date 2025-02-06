@@ -1,0 +1,7 @@
+Dockerfile*
+docker-compose*.yaml
+compose.yaml
+__pycache__
+build
+dist
+docs
