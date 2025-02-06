@@ -1,16 +1,16 @@
-FROM python:3.12.8-alpine3.20
+FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-devel
 
-RUN apk update && apk add --no-cache tzdata && apk upgrade
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+
+RUN apt-get update && apt-get install -y \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-#mount requirements.txt for best cache result
-RUN --mount=type=bind,source=pyproject.toml,target=./pyproject.toml \
-    pip install --no-cache-dir -e . \
-    pip install torchvision torchaudio
-
-# 复制项目文件
 COPY . .
 
-# 设置默认命令
+RUN pip install --no-cache-dir -e . \
+    && pip install torchvision torchaudio
+
 CMD ["python", "gradio_demo.py"]
