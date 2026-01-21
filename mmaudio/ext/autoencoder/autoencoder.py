@@ -28,7 +28,9 @@ class AutoEncoderModule(nn.Module):
             self.vocoder = BigVGAN(vocoder_ckpt_path).eval()
         elif mode == '44k':
             self.vocoder = BigVGANv2.from_pretrained('nvidia/bigvgan_v2_44khz_128band_512x',
-                                                     use_cuda_kernel=False)
+                                                     use_cuda_kernel=False,
+                                                     proxies=None,
+                                                     resume_download=False)
             self.vocoder.remove_weight_norm()
         else:
             raise ValueError(f'Unknown mode: {mode}')
