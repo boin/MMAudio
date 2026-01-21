@@ -1,7 +1,9 @@
 FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-devel
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_NO_CACHE_DIR=1
 ENV TZ=Asia/Shanghai
+ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y \
     tzdata \
