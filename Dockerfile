@@ -15,4 +15,7 @@ COPY . .
 RUN pip install --no-cache-dir -e . \
     && pip install torchvision torchaudio
 
+# Create gradio output directory to avoid FileNotFoundError
+RUN mkdir -p /app/output/gradio
+
 CMD ["python", "gradio_demo.py"]
