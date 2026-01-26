@@ -15,6 +15,7 @@ from mmaudio.model.flow_matching import FlowMatching
 from mmaudio.model.networks import MMAudio, get_my_mmaudio
 from mmaudio.model.sequence_config import SequenceConfig
 from mmaudio.model.utils.features_utils import FeaturesUtils
+from ttd_fastapi_utils import SmartModel
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -30,37 +31,39 @@ else:
     log.warning('CUDA/MPS are not available, running on CPU')
 dtype = torch.bfloat16
 
-model: ModelConfig = all_model_cfg['large_44k_v2']
-model.download_if_needed()
+model_config: ModelConfig = all_model_cfg['large_44k_v2']
+model_config.download_if_needed()
 output_dir = Path('./output/gradio')
 
 setup_eval_logging()
 
 
-def get_model() -> tuple[MMAudio, FeaturesUtils, SequenceConfig]:
-    seq_cfg = model.seq_cfg
+def load_model_components() -> tuple[MMAudio, FeaturesUtils, SequenceConfig]:
+    seq_cfg = model_config.seq_cfg
 
-    net: MMAudio = get_my_mmaudio(model.model_name).to(device, dtype).eval()
-    net.load_weights(torch.load(model.model_path, map_location=device, weights_only=True))
-    log.info(f'Loaded weights from {model.model_path}')
+    net: MMAudio = get_my_mmaudio(model_config.model_name).to(device, dtype).eval()
+    net.load_weights(torch.load(model_config.model_path, map_location=device, weights_only=True))
+    log.info(f'Loaded weights from {model_config.model_path}')
 
-    feature_utils = FeaturesUtils(tod_vae_ckpt=model.vae_path,
-                                  synchformer_ckpt=model.synchformer_ckpt,
+    feature_utils = FeaturesUtils(tod_vae_ckpt=model_config.vae_path,
+                                  synchformer_ckpt=model_config.synchformer_ckpt,
                                   enable_conditions=True,
-                                  mode=model.mode,
-                                  bigvgan_vocoder_ckpt=model.bigvgan_16k_path,
+                                  mode=model_config.mode,
+                                  bigvgan_vocoder_ckpt=model_config.bigvgan_16k_path,
                                   need_vae_encoder=False)
     feature_utils = feature_utils.to(device, dtype).eval()
 
     return net, feature_utils, seq_cfg
 
-
-net, feature_utils, seq_cfg = get_model()
-
+# Initialize SmartModel with 2h timeout
+model_manager = SmartModel(load_model_components, timeout_seconds=7200)
 
 @torch.inference_mode()
 def video_to_audio(video: gr.Video, prompt: str, negative_prompt: str, seed: int, num_steps: int,
                    cfg_strength: float, duration: float):
+    
+    # Get loaded models
+    net, feature_utils, seq_cfg = model_manager.get()
 
     rng = torch.Generator(device=device)
     if seed >= 0:
@@ -100,6 +103,9 @@ def video_to_audio(video: gr.Video, prompt: str, negative_prompt: str, seed: int
 def image_to_audio(image: gr.Image, prompt: str, negative_prompt: str, seed: int, num_steps: int,
                    cfg_strength: float, duration: float):
 
+    # Get loaded models
+    net, feature_utils, seq_cfg = model_manager.get()
+
     rng = torch.Generator(device=device)
     if seed >= 0:
         rng.manual_seed(seed)
@@ -138,6 +144,9 @@ def image_to_audio(image: gr.Image, prompt: str, negative_prompt: str, seed: int
 @torch.inference_mode()
 def text_to_audio(prompt: str, negative_prompt: str, seed: int, num_steps: int, cfg_strength: float,
                   duration: float):
+    
+    # Get loaded models
+    net, feature_utils, seq_cfg = model_manager.get()
 
     rng = torch.Generator(device=device)
     if seed >= 0:

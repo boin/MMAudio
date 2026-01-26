@@ -13,7 +13,8 @@ WORKDIR /app
 COPY . .
 
 RUN pip install --no-cache-dir -e . \
-    && pip install torchvision torchaudio
+    && pip install torchvision torchaudio \
+    && pip install --no-cache-dir 'ttd_fastapi_utils>=0.2.4' --extra-index-url http://pypi-server/simple/ --trusted-host pypi-server
 
 # Create gradio output directory to avoid FileNotFoundError
 RUN mkdir -p /app/output/gradio
